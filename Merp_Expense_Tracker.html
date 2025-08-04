@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker - MERP</title>
+<link rel="icon" type="image/png" href="logo.png">
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f4f4f4; color: #333; padding: 20px; }
+    h1 { text-align:center; margin-bottom:20px; color: #222; }
+    .container { max-width: 900px; margin: auto; background: white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+    form { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    input, select, button { padding:10px; border-radius:5px; border:1px solid #ccc; flex:1; }
+    button { background: #007bff; color:white; cursor:pointer; transition:0.3s; }
+    button:hover { background: #0056b3; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:10px; text-align:center; border-bottom:1px solid #ddd; }
+    th { background:#007bff; color:white; }
+    .summary { margin-top:20px; padding:10px; background:#e9ecef; border-radius:5px; }
+    .filter { margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; }
+    .delete-btn { background:red; color:white; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
+    .delete-btn:hover { background: darkred; }
+</style>
+</head>
+<body>
+
+<h1>Expense Tracker - MERP</h1>
+<div class="container">
+    <form id="expenseForm">
+        <select id="CorD" required>
+            <option value="">Select Type</option>
+            <option value="Credit">Credit</option>
+            <option value="Debit">Debit</option>
+        </select>
+        <input type="number" id="amount" placeholder="Amount" min="1" required>
+        <select id="category" required>
+            <option value="">Select Category</option>
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Others">Others</option>
+        </select>
+        <input type="month" id="month" required>
+        <input type="text" id="description" placeholder="Description (optional)">
+        <button type="submit">Add Expense</button>
+    </form>
+
+    <div class="filter">
+        <label>Filter by Category:</label>
+        <select id="filterCategory">
+            <option value="">All</option>
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Others">Others</option>
+        </select>
+
+        <label>Filter by Month:</label>
+        <input type="month" id="filterMonth">
+        <button id="clearFilters">Clear Filters</button>
+    </div>
+
+    <table id="expenseTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Category</th>
+                <th>Month</th>
+                <th>Description</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="summary" id="summary"></div>
+</div>
+
+<script>
+// Initialize
+let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+const form = document.getElementById('expenseForm');
+const tableBody = document.querySelector('#expenseTable tbody');
+const summaryDiv = document.getElementById('summary');
+const filterCategory = document.getElementById('filterCategory');
+const filterMonth = document.getElementById('filterMonth');
+const clearFilters = document.getElementById('clearFilters');
+
+// Display
+function renderExpenses() {
+    const categoryFilter = filterCategory.value;
+    const monthFilter = filterMonth.value;
+    let filtered = expenses.filter(e => {
+        return (!categoryFilter || e.category === categoryFilter) &&
+               (!monthFilter || e.month === monthFilter);
+    });
+
+    tableBody.innerHTML = "";
+    filtered.forEach((e, i) => {
+        tableBody.innerHTML += `
+            <tr>
+                <td>${i+1}</td>
+                <td>${e.CorD}</td>
+                <td>₹${e.amount}</td>
+                <td>${e.category}</td>
+                <td>${e.month}</td>
+                <td>${e.description}</td>
+                <td><button class="delete-btn" onclick="deleteExpense(${i})">Delete</button></td>
+            </tr>
+        `;
+    });
+    renderSummary(filtered);
+}
+
+// Summary
+function renderSummary(data) {
+    let credit = data.filter(e => e.CorD === "Credit").reduce((sum,e)=>sum + e.amount,0);
+    let debit = data.filter(e => e.CorD === "Debit").reduce((sum,e)=>sum + e.amount,0);
+    let balance = credit - debit;
+    summaryDiv.innerHTML = `
+        <b>Total Credit:</b> ₹${credit} | 
+        <b>Total Debit:</b> ₹${debit} | 
+        <b>Balance:</b> ₹${balance}
+    `;
+}
+
+// Add Expense
+form.addEventListener('submit', e => {
+    e.preventDefault();
+    const CorD = document.getElementById('CorD').value;
+    const amount = parseInt(document.getElementById('amount').value);
+    const category = document.getElementById('category').value;
+    const month = document.getElementById('month').value;
+    const description = document.getElementById('description').value;
+    expenses.push({ CorD, amount, category, month, description });
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    form.reset();
+    renderExpenses();
+});
+
+// Delete
+function deleteExpense(index){
+    expenses.splice(index,1);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    renderExpenses();
+}
+
+// Filter listeners
+filterCategory.addEventListener('change', renderExpenses);
+filterMonth.addEventListener('change', renderExpenses);
+clearFilters.addEventListener('click', ()=>{
+    filterCategory.value = "";
+    filterMonth.value = "";
+    renderExpenses();
+});
+
+// Initial render
+renderExpenses();
+
+</script>
+
+</body>
+</html>
